@@ -1,44 +1,37 @@
-const messageList = document.querySelector('ul');
-const nicknameForm = document.querySelector('#nickname');
-const messageForm = document.querySelector('#message');
+const socket = io();
 
-const socket = new WebSocket(`ws://${window.location.host}`);
+const welcome = document.getElementById('welcome');
+const form = welcome.querySelector('form');
+const room = document.getElementById('room');
 
-const makeMessage = (type, payload) => {
-	const message = { type, payload };
-	return JSON.stringify(message);
+room.hidden = true;
+
+let roomName;
+
+const addMessage = (message) => {
+	const ul = room.querySelector('ul');
+	const li = document.createElement('li');
+	li.innerText = message;
+	ul.appendChild(li);
 };
 
-socket.addEventListener('open', () => {
-	console.log('Connected to Server ✅');
-});
+const showRoom = () => {
+	welcome.hidden = true;
+	room.hidden = false;
+	const h3 = room.querySelector('h3');
+	h3.innerText = `Room ${roomName}`;
+};
 
-socket.addEventListener('message', (message) => {
-	const li = document.createElement('li');
-	li.innerText = message.data;
-	messageList.append(li);
-});
-
-socket.addEventListener('close', () => {
-	console.log('Disconnected to Server ❌');
-});
-
-const handleNicknameSubmit = (e) => {
+const handleRoomSubmit = (e) => {
 	e.preventDefault();
-	const input = nicknameForm.querySelector('input');
-	socket.send(makeMessage('nickname', input.value));
+	const input = form.querySelector('input');
+	socket.emit('enter_room', input.value, showRoom);
+	roomName = input.value;
 	input.value = '';
 };
 
-const handleMessageSubmit = (e) => {
-	e.preventDefault();
-	const input = messageForm.querySelector('input');
-	socket.send(makeMessage('new_message', input.value));
-	const li = document.createElement('li');
-	li.innerText = `You: ${input.value}`;
-	messageList.append(li);
-	input.value = '';
-};
+form.addEventListener('submit', handleRoomSubmit);
 
-nicknameForm.addEventListener('submit', handleNicknameSubmit);
-messageForm.addEventListener('submit', handleMessageSubmit);
+socket.on('welcome', () => {
+	addMessage('Someone joined!');
+});
